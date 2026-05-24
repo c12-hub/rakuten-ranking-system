@@ -77,8 +77,9 @@ class RakutenRankingClient:
         genre_id: str,
         page: int,
     ) -> dict[str, Any]:
+        app_key_name = "accessKey" if endpoint == PRIMARY_API_URL else "applicationId"
         params: dict[str, Any] = {
-            "applicationId": self.settings.application_id,
+            app_key_name: self.settings.application_id,
             "format": "json",
             "formatVersion": 2,
             "genreId": genre_id,
