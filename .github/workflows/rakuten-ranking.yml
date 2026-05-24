@@ -24,6 +24,28 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Secret diagnostics
+        env:
+          RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
+          RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
+        run: |
+          print_secret() {
+            name="$1"
+            value="${!name}"
+            length="${#value}"
+            if [ "$length" -eq 0 ]; then
+              prefix=""
+              suffix=""
+            else
+              prefix="${value:0:4}"
+              suffix="${value: -4}"
+            fi
+            echo "$name length=$length prefix=$prefix suffix=$suffix"
+          }
+
+          print_secret RAKUTEN_APPLICATION_ID
+          print_secret RAKUTEN_ACCESS_KEY
+
       - name: Fetch Rakuten ranking
         env:
           RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
