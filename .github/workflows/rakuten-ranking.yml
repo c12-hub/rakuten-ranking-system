@@ -1,0 +1,43 @@
+name: Rakuten Ranking
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-ranking:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch Rakuten ranking
+        env:
+          RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          OUTPUT_DIR: output
+          DEFAULT_GENRE_IDS: "100371"
+          RAKUTEN_REQUEST_TIMEOUT: "60"
+          RAKUTEN_USE_SYSTEM_PROXY: "false"
+          HTTP_PROXY: ""
+          HTTPS_PROXY: ""
+        run: python main.py --genre-id 100371
+
+      - name: Commit output files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update Rakuten ranking output"
+          file_pattern: output/*.csv output/*.xlsx
