@@ -49,6 +49,7 @@ jobs:
       - name: Fetch Rakuten ranking
         env:
           RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
+          RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
           OUTPUT_DIR: output
           DEFAULT_GENRE_IDS: "100371"
