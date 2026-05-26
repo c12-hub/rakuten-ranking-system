@@ -85,7 +85,7 @@ class RakutenRankingClient:
             "page": page,
         }
         if endpoint == PRIMARY_API_URL:
-            params["accessKey"] = self.settings.application_id
+            params["accessKey"] = self.settings.access_key or self.settings.application_id
         if self.settings.affiliate_id:
             params["affiliateId"] = self.settings.affiliate_id
 
@@ -180,6 +180,7 @@ class RakutenRankingClient:
         lines = [
             f"Rakuten API request failed for genreId={genre_id}, page={page}",
             f"applicationId loaded: {'yes' if bool(self.settings.application_id) else 'no'}",
+            f"accessKey loaded: {'yes' if bool(self.settings.access_key) else 'no'}",
             f"affiliateId loaded: {'yes' if bool(self.settings.affiliate_id) else 'no'}",
             f"use system proxy: {'yes' if self.settings.use_system_proxy else 'no'}",
             f"explicit proxies: {proxy_text}",
