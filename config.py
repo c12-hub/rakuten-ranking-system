@@ -11,6 +11,7 @@ load_dotenv(encoding="utf-8-sig")
 @dataclass(frozen=True)
 class Settings:
     application_id: str
+    access_key: str | None
     affiliate_id: str | None
     output_dir: Path
     default_genre_ids: list[str]
@@ -45,6 +46,7 @@ def load_settings() -> Settings:
 
     return Settings(
         application_id=application_id,
+        access_key=os.getenv("RAKUTEN_ACCESS_KEY", "").strip() or None,
         affiliate_id=os.getenv("RAKUTEN_AFFILIATE_ID", "").strip() or None,
         output_dir=Path(os.getenv("OUTPUT_DIR", "output")).resolve(),
         default_genre_ids=default_genre_ids,
