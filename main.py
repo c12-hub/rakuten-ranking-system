@@ -36,6 +36,7 @@ def run_once(genre_ids: list[str], top_n: int) -> None:
     for genre_id in genre_ids:
         logging.info("Fetching Rakuten ranking: genreId=%s top=%s", genre_id, top_n)
         items = client.fetch_top_items(genre_id=genre_id, top_n=top_n)
+        logging.info("Used endpoint: %s", client.last_success_endpoint)
         csv_path, excel_path = save_rankings(items, settings.output_dir, genre_id)
         logging.info(
             "Saved %s deduplicated rows for genreId=%s: %s, %s",

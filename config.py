@@ -35,8 +35,15 @@ def load_settings() -> Settings:
         if item.strip()
     ]
 
-    http_proxy = os.getenv("HTTP_PROXY", "").strip()
-    https_proxy = os.getenv("HTTPS_PROXY", "").strip()
+    use_system_proxy = os.getenv("RAKUTEN_USE_SYSTEM_PROXY", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+    http_proxy = os.getenv("HTTP_PROXY", "").strip() if use_system_proxy else ""
+    https_proxy = os.getenv("HTTPS_PROXY", "").strip() if use_system_proxy else ""
     proxies = None
     if http_proxy or https_proxy:
         proxies = {
@@ -52,7 +59,6 @@ def load_settings() -> Settings:
         default_genre_ids=default_genre_ids,
         daily_run_time=os.getenv("DAILY_RUN_TIME", "02:00").strip(),
         request_timeout=int(os.getenv("RAKUTEN_REQUEST_TIMEOUT", "60")),
-        use_system_proxy=os.getenv("RAKUTEN_USE_SYSTEM_PROXY", "true").strip().lower()
-        in {"1", "true", "yes", "on"},
+        use_system_proxy=use_system_proxy,
         proxies=proxies,
     )

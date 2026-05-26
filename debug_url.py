@@ -4,7 +4,7 @@ import argparse
 from urllib.parse import urlencode
 
 from config import load_settings
-from rakuten_client import PRIMARY_API_URL
+from rakuten_client import APP_RANKING_API_URL
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,7 +25,6 @@ def main() -> None:
 
     params = {
         "applicationId": settings.application_id,
-        "accessKey": settings.access_key or "",
         "format": "json",
         "formatVersion": 2,
         "genreId": args.genre_id,
@@ -34,22 +33,17 @@ def main() -> None:
     if settings.affiliate_id:
         params["affiliateId"] = settings.affiliate_id
 
-    real_url = f"{PRIMARY_API_URL}?{urlencode(params)}"
+    real_url = f"{APP_RANKING_API_URL}?{urlencode(params)}"
 
     masked_params = params.copy()
     masked_params["applicationId"] = mask_value(masked_params["applicationId"])
-    masked_params["accessKey"] = mask_value(masked_params["accessKey"])
     if "affiliateId" in masked_params:
         masked_params["affiliateId"] = mask_value(masked_params["affiliateId"])
-    masked_url = f"{PRIMARY_API_URL}?{urlencode(masked_params)}"
+    masked_url = f"{APP_RANKING_API_URL}?{urlencode(masked_params)}"
 
     print("Masked URL:")
     print(masked_url)
     print()
-
-    if not settings.access_key:
-        print("Warning: RAKUTEN_ACCESS_KEY is empty in .env. Fill it before browser testing.")
-        print()
 
     if args.show_secret:
         print("Real browser URL:")

@@ -12,15 +12,11 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from config import Settings
 
 
-PRIMARY_API_URL = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601"
-FALLBACK_API_URL = "https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601"
-API_URLS = [PRIMARY_API_URL, FALLBACK_API_URL]
+APP_RANKING_API_URL = "https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601"
+APP_ITEM_SEARCH_API_URL = "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601"
+OPENAPI_RANKING_API_URL = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601"
+API_URLS = [APP_RANKING_API_URL, OPENAPI_RANKING_API_URL]
 TOKYO_TZ = ZoneInfo("Asia/Tokyo")
-RAKUTEN_HEADERS = {
-    "Referer": "https://webservice.rakuten.co.jp/",
-    "Origin": "https://webservice.rakuten.co.jp",
-    "User-Agent": "Mozilla/5.0",
-}
 
 ITEM_NAME = "\u5546\u54c1\u540d"
 ITEM_PRICE = "\u5546\u54c1\u4ef7\u683c"
@@ -51,6 +47,7 @@ class RakutenRankingClient:
         self.settings = settings
         self.session = requests.Session()
         self.session.trust_env = settings.use_system_proxy
+        self.last_success_endpoint: str | None = None
 
     @retry(
         retry=retry_if_exception_type(RakutenApiError),
@@ -68,8 +65,6 @@ class RakutenRankingClient:
                 failure = exc.args[0]
                 if isinstance(failure, ApiFailure):
                     failures.append(failure)
-                    if failure.error_type == "TIMEOUT" and endpoint == PRIMARY_API_URL:
-                        continue
                     if failure.error_type in {"DNS", "PROXY", "TIMEOUT", "403", "429", "400"}:
                         continue
                 raise
@@ -89,7 +84,7 @@ class RakutenRankingClient:
             "genreId": genre_id,
             "page": page,
         }
-        if endpoint == PRIMARY_API_URL:
+        if endpoint == OPENAPI_RANKING_API_URL and self.settings.access_key:
             params["accessKey"] = self.settings.access_key or self.settings.application_id
         if self.settings.affiliate_id:
             params["affiliateId"] = self.settings.affiliate_id
@@ -98,7 +93,6 @@ class RakutenRankingClient:
             response = self.session.get(
                 endpoint,
                 params=params,
-                headers=RAKUTEN_HEADERS,
                 timeout=self.settings.request_timeout,
                 proxies=self.settings.proxies,
             )
@@ -125,11 +119,12 @@ class RakutenRankingClient:
             ) from None
 
         if response.status_code >= 400:
+            detail = _extract_error_message(response)
             raise RakutenApiError(
                 ApiFailure(
                     endpoint=endpoint,
                     error_type=str(response.status_code),
-                    detail=response.text[:300],
+                    detail=detail,
                     status_code=response.status_code,
                 )
             )
@@ -144,9 +139,10 @@ class RakutenRankingClient:
         if "Items" not in payload:
             error_text = payload.get("error_description") or payload.get("error") or str(payload)
             raise RakutenApiError(
-                ApiFailure(endpoint=endpoint, error_type="API_RESPONSE", detail=error_text[:300])
+                ApiFailure(endpoint=endpoint, error_type="API_RESPONSE", detail=error_text)
             )
 
+        self.last_success_endpoint = endpoint
         return payload
 
     def fetch_top_items(self, genre_id: str, top_n: int = 100) -> list[dict[str, Any]]:
@@ -233,3 +229,21 @@ def _is_dns_error(exc: requests.exceptions.ConnectionError) -> bool:
             return True
         current = current.__cause__ or current.__context__
     return "NameResolutionError" in str(exc) or "getaddrinfo failed" in str(exc)
+
+
+def _extract_error_message(response: requests.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return response.text
+
+    if isinstance(payload, dict):
+        errors = payload.get("errors")
+        if isinstance(errors, dict) and errors.get("errorMessage"):
+            return str(errors["errorMessage"])
+        if payload.get("error_description"):
+            return str(payload["error_description"])
+        if payload.get("error"):
+            return str(payload["error"])
+
+    return response.text

@@ -30,6 +30,7 @@ Use the official Test Form on that page.
 Recommended parameters:
 
 ```text
+endpoint=https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601
 genreId=100371
 page=1
 format=json
@@ -40,7 +41,6 @@ Use your Rakuten Web Service app credentials from the official dashboard:
 
 ```text
 applicationId
-accessKey
 affiliateId optional
 ```
 
@@ -119,7 +119,12 @@ The older local Python API crawler remains in the repository:
 python main.py --genre-id 100371
 ```
 
-Use it only if your local network and Rakuten credentials allow direct API access.
+It now tries endpoints in this order:
+
+1. `https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601`
+2. `https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601`
+
+The default app endpoint sends only `applicationId`, optional `affiliateId`, `genreId`, `page`, `format=json`, and `formatVersion=2`. It does not require `accessKey` or `Referer`.
 
 ## Common genreId Examples
 
