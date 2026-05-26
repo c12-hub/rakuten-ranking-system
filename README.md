@@ -1,31 +1,15 @@
 # Rakuten Ranking System
 
-Rakuten Ranking API crawler for `genreId=100371`. It can run locally on Windows, and the GitHub Actions workflow is kept as a backup because Rakuten currently blocks GitHub-hosted runner IPs.
+This project converts Rakuten Ichiba Ranking API JSON into CSV and Excel.
 
-## Current Recommended Plan
+Current recommended workflow:
 
-Use the local Windows/browser workflow. This does not require Python network requests:
+1. Use Rakuten official API Test Form to request Ranking API.
+2. Save the returned JSON as `downloaded_rakuten.json`.
+3. Run `paste_json_to_excel.py`.
+4. Read the generated files in `output/`.
 
-1. Open `browser_test.html` in your browser.
-2. Fill `applicationId`, `accessKey`, and optional `affiliateId`.
-3. Click `Save and Fetch`.
-4. View product name, price, shop, and image directly in the page.
-5. Click `Download JSON` or `Export CSV`.
-
-Alternative manual flow:
-
-1. Generate a browser API URL with `debug_url.py`.
-2. Open the URL in your browser.
-3. If the browser returns JSON, save it as `downloaded_rakuten.json`.
-4. Run `import_json.py` to convert the JSON into CSV and Excel.
-
-GitHub Actions is still in `.github/workflows/rakuten-ranking.yml`, but treat it as backup only. Rakuten returned:
-
-```text
-Access from this IP address is not allowed for webservice.rakuten.co.jp
-```
-
-for GitHub-hosted runner IPs.
+The browser JavaScript page is no longer maintained because browser JavaScript cannot override protected headers such as `Referer`, `Origin`, and `User-Agent`.
 
 ## Install
 
@@ -33,92 +17,43 @@ for GitHub-hosted runner IPs.
 pip install -r requirements.txt
 ```
 
-Create `.env`:
+## Official Test Form Workflow
 
-```bash
-copy .env.example .env
-```
-
-Fill these values in `.env`:
-
-```env
-RAKUTEN_APPLICATION_ID=your_rakuten_application_id
-RAKUTEN_ACCESS_KEY=your_rakuten_access_key
-RAKUTEN_AFFILIATE_ID=
-OUTPUT_DIR=output
-DEFAULT_GENRE_IDS=100371
-DAILY_RUN_TIME=02:00
-RAKUTEN_USE_SYSTEM_PROXY=false
-RAKUTEN_REQUEST_TIMEOUT=60
-HTTP_PROXY=
-HTTPS_PROXY=
-```
-
-## Local Windows Run
-
-If your local network can access Rakuten API:
-
-```bash
-python main.py --genre-id 100371
-```
-
-Output:
+Open the Rakuten official API documentation/Test Form:
 
 ```text
-output/ranking_100371_YYYYMMDD.csv
-output/ranking_100371_YYYYMMDD.xlsx
+https://webservice.rakuten.co.jp/documentation/ichiba-item-ranking
 ```
 
-## Browser Manual URL Test
+Use the official Test Form on that page.
 
-### Pure Browser Page
-
-Open this file directly in your browser:
+Recommended parameters:
 
 ```text
-browser_test.html
+genreId=100371
+page=1
+format=json
+formatVersion=2
 ```
 
-The page uses browser JavaScript `fetch()` to call Rakuten API and renders:
+Use your Rakuten Web Service app credentials from the official dashboard:
 
-- 商品名
-- 价格
-- 店铺
-- 图片
-
-It can also download:
-
-- `downloaded_rakuten.json`
-- `ranking_100371_YYYYMMDD.csv`
-
-Browser note: JavaScript cannot truly override protected request headers such as `Origin` and `User-Agent`. The page includes the requested header object where browsers allow it and uses the `referrer` option for Referer.
-
-### URL Generator
-
-Print a masked URL:
-
-```bash
-python debug_url.py --genre-id 100371
+```text
+applicationId
+accessKey
+affiliateId optional
 ```
 
-Print the real URL for browser copy/paste:
-
-```bash
-python debug_url.py --genre-id 100371 --show-secret
-```
-
-Copy the real URL into your browser. If it opens JSON successfully, save the page as:
+Run the test in the official page. If it returns JSON successfully, save the full JSON response into this project folder as:
 
 ```text
 downloaded_rakuten.json
 ```
 
-## Import Browser-Downloaded JSON
-
-Convert `downloaded_rakuten.json` into CSV and Excel:
+Then convert it:
 
 ```bash
-python import_json.py --input downloaded_rakuten.json --genre-id 100371
+python paste_json_to_excel.py --input downloaded_rakuten.json --genre-id 100371
 ```
 
 Output:
@@ -128,31 +63,24 @@ output/ranking_100371_YYYYMMDD.csv
 output/ranking_100371_YYYYMMDD.xlsx
 ```
 
-## GitHub Actions Backup
+## Local JSON Conversion
 
-The workflow remains available:
+Default command:
 
-```text
-.github/workflows/rakuten-ranking.yml
+```bash
+python paste_json_to_excel.py
 ```
 
-It supports:
+Custom input:
 
-- Daily scheduled run
-- Manual `workflow_dispatch`
-- Python 3.11
-- CSV and Excel output under `output/`
-- Auto commit of output files
-
-Required GitHub Secrets:
-
-```text
-RAKUTEN_APPLICATION_ID
-RAKUTEN_ACCESS_KEY
-RAKUTEN_AFFILIATE_ID
+```bash
+python paste_json_to_excel.py --input downloaded_rakuten.json --genre-id 100371 --output-dir output
 ```
 
-However, GitHub-hosted runner IPs may be blocked by Rakuten. Use this workflow only as a backup.
+The converter reads `Items` from Rakuten JSON and exports:
+
+- CSV with UTF-8 BOM
+- Excel `.xlsx`
 
 ## Output Fields
 
@@ -166,6 +94,32 @@ However, GitHub-hosted runner IPs may be blocked by Rakuten. Use this workflow o
 - 排名
 - 类目ID
 - 抓取时间
+
+## GitHub Actions Backup
+
+The GitHub Actions workflow is kept only as backup:
+
+```text
+.github/workflows/rakuten-ranking.yml
+```
+
+Rakuten currently blocks GitHub-hosted runner IPs with:
+
+```text
+Access from this IP address is not allowed for webservice.rakuten.co.jp
+```
+
+So the official Test Form plus local JSON conversion is the safer workflow.
+
+## Local API Scripts
+
+The older local Python API crawler remains in the repository:
+
+```bash
+python main.py --genre-id 100371
+```
+
+Use it only if your local network and Rakuten credentials allow direct API access.
 
 ## Common genreId Examples
 
