@@ -16,6 +16,11 @@ PRIMARY_API_URL = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ra
 FALLBACK_API_URL = "https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601"
 API_URLS = [PRIMARY_API_URL, FALLBACK_API_URL]
 TOKYO_TZ = ZoneInfo("Asia/Tokyo")
+RAKUTEN_HEADERS = {
+    "Referer": "https://webservice.rakuten.co.jp/",
+    "Origin": "https://webservice.rakuten.co.jp",
+    "User-Agent": "Mozilla/5.0",
+}
 
 ITEM_NAME = "\u5546\u54c1\u540d"
 ITEM_PRICE = "\u5546\u54c1\u4ef7\u683c"
@@ -93,6 +98,7 @@ class RakutenRankingClient:
             response = self.session.get(
                 endpoint,
                 params=params,
+                headers=RAKUTEN_HEADERS,
                 timeout=self.settings.request_timeout,
                 proxies=self.settings.proxies,
             )
