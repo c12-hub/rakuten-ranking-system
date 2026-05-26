@@ -4,7 +4,15 @@ Rakuten Ranking API crawler for `genreId=100371`. It can run locally on Windows,
 
 ## Current Recommended Plan
 
-Use the local Windows/browser workflow:
+Use the local Windows/browser workflow. This does not require Python network requests:
+
+1. Open `browser_test.html` in your browser.
+2. Fill `applicationId`, `accessKey`, and optional `affiliateId`.
+3. Click `Save and Fetch`.
+4. View product name, price, shop, and image directly in the page.
+5. Click `Download JSON` or `Export CSV`.
+
+Alternative manual flow:
 
 1. Generate a browser API URL with `debug_url.py`.
 2. Open the URL in your browser.
@@ -62,6 +70,30 @@ output/ranking_100371_YYYYMMDD.xlsx
 ```
 
 ## Browser Manual URL Test
+
+### Pure Browser Page
+
+Open this file directly in your browser:
+
+```text
+browser_test.html
+```
+
+The page uses browser JavaScript `fetch()` to call Rakuten API and renders:
+
+- 商品名
+- 价格
+- 店铺
+- 图片
+
+It can also download:
+
+- `downloaded_rakuten.json`
+- `ranking_100371_YYYYMMDD.csv`
+
+Browser note: JavaScript cannot truly override protected request headers such as `Origin` and `User-Agent`. The page includes the requested header object where browsers allow it and uses the `referrer` option for Referer.
+
+### URL Generator
 
 Print a masked URL:
 

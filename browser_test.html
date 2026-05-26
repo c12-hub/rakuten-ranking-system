@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rakuten Ranking Browser Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        background: #f6f7f9;
+        color: #1f2937;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 24px;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid #dfe3ea;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: #4b5563;
+      }
+
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 9px 10px;
+        font-size: 14px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      button {
+        border: 1px solid #2563eb;
+        border-radius: 6px;
+        background: #2563eb;
+        color: #fff;
+        padding: 9px 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #fff;
+        color: #2563eb;
+      }
+
+      .status {
+        white-space: pre-wrap;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .note {
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .products {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 12px;
+      }
+
+      .product {
+        background: #fff;
+        border: 1px solid #dfe3ea;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .product img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        background: #eef2f7;
+        display: block;
+      }
+
+      .product-body {
+        padding: 10px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .name {
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .meta {
+        font-size: 13px;
+        color: #4b5563;
+      }
+
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Rakuten Ranking Browser Test</h1>
+
+      <section class="panel">
+        <div class="grid">
+          <label>
+            applicationId
+            <input id="applicationId" autocomplete="off" />
+          </label>
+          <label>
+            accessKey
+            <input id="accessKey" autocomplete="off" />
+          </label>
+          <label>
+            affiliateId
+            <input id="affiliateId" autocomplete="off" />
+          </label>
+          <label>
+            genreId
+            <input id="genreId" value="100371" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="saveAndFetch">Save and Fetch</button>
+          <button id="fetchNow" class="secondary">Fetch Now</button>
+          <button id="downloadJson" class="secondary">Download JSON</button>
+          <button id="downloadCsv" class="secondary">Export CSV</button>
+          <button id="clearSaved" class="secondary">Clear Saved Keys</button>
+        </div>
+        <p class="note">
+          Browser JavaScript cannot truly override protected headers such as Origin and User-Agent.
+          This page sends the requested header object where browsers allow it, and uses the fetch
+          referrer option for Referer.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div id="status" class="status">Ready.</div>
+      </section>
+
+      <section id="products" class="products"></section>
+    </main>
+
+    <script src="export_json.js"></script>
+    <script src="export_excel.js"></script>
+    <script>
+      const API_URL =
+        "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601";
+      const REQUEST_HEADERS = {
+        Referer: "https://webservice.rakuten.co.jp/",
+        Origin: "https://webservice.rakuten.co.jp",
+        "User-Agent": "Mozilla/5.0",
+      };
+
+      let latestPayload = null;
+      let latestItems = [];
+
+      const fields = {
+        applicationId: document.getElementById("applicationId"),
+        accessKey: document.getElementById("accessKey"),
+        affiliateId: document.getElementById("affiliateId"),
+        genreId: document.getElementById("genreId"),
+      };
+      const statusEl = document.getElementById("status");
+      const productsEl = document.getElementById("products");
+
+      loadSavedValues();
+
+      document.getElementById("saveAndFetch").addEventListener("click", () => {
+        saveValues();
+        fetchRanking();
+      });
+      document.getElementById("fetchNow").addEventListener("click", fetchRanking);
+      document.getElementById("downloadJson").addEventListener("click", () => {
+        window.exportRakutenJson(latestPayload);
+      });
+      document.getElementById("downloadCsv").addEventListener("click", () => {
+        window.exportRakutenCsv(latestItems);
+      });
+      document.getElementById("clearSaved").addEventListener("click", () => {
+        ["applicationId", "accessKey", "affiliateId", "genreId"].forEach((key) =>
+          localStorage.removeItem(`rakuten.${key}`)
+        );
+        latestPayload = null;
+        latestItems = [];
+        Object.values(fields).forEach((field) => (field.value = ""));
+        fields.genreId.value = "100371";
+        productsEl.innerHTML = "";
+        setStatus("Saved values cleared.");
+      });
+
+      if (fields.applicationId.value && fields.accessKey.value) {
+        fetchRanking();
+      } else {
+        setStatus("Fill applicationId and accessKey, then click Save and Fetch.");
+      }
+
+      async function fetchRanking() {
+        const params = new URLSearchParams({
+          applicationId: fields.applicationId.value.trim(),
+          accessKey: fields.accessKey.value.trim(),
+          affiliateId: fields.affiliateId.value.trim(),
+          genreId: fields.genreId.value.trim() || "100371",
+          format: "json",
+          formatVersion: "2",
+          page: "1",
+        });
+
+        if (!params.get("applicationId") || !params.get("accessKey")) {
+          setStatus("applicationId and accessKey are required.");
+          return;
+        }
+
+        const url = `${API_URL}?${params.toString()}`;
+        setStatus(`Requesting Rakuten API...\n${maskUrl(url)}`);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: REQUEST_HEADERS,
+            referrer: "https://webservice.rakuten.co.jp/",
+            referrerPolicy: "strict-origin-when-cross-origin",
+            mode: "cors",
+          });
+          const text = await response.text();
+          latestPayload = parseJson(text);
+
+          if (!response.ok) {
+            const message = extractErrorMessage(latestPayload) || text;
+            setStatus(`HTTP ${response.status}\n${message}`);
+            productsEl.innerHTML = "";
+            return;
+          }
+
+          latestItems = normalizeItems(latestPayload, params.get("genreId"));
+          renderProducts(latestItems);
+          setStatus(`HTTP ${response.status}\nLoaded ${latestItems.length} items.`);
+        } catch (error) {
+          setStatus(`Fetch failed:\n${error.message}`);
+          productsEl.innerHTML = "";
+        }
+      }
+
+      function normalizeItems(payload, genreId) {
+        const rawItems = Array.isArray(payload.Items) ? payload.Items : [];
+        const fetchedAt = new Date().toISOString();
+        return rawItems.map((item) => {
+          const image = firstImageUrl(item.mediumImageUrls || item.smallImageUrls || []);
+          return {
+            itemName: item.itemName || "",
+            itemPrice: item.itemPrice || "",
+            shopName: item.shopName || "",
+            reviewCount: item.reviewCount || "",
+            reviewAverage: item.reviewAverage || "",
+            itemUrl: item.itemUrl || "",
+            mainImageUrl: image,
+            rank: item.rank || "",
+            genreId,
+            fetchedAt,
+          };
+        });
+      }
+
+      function renderProducts(items) {
+        productsEl.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "product";
+          card.innerHTML = `
+            <img src="${escapeAttr(item.mainImageUrl)}" alt="">
+            <div class="product-body">
+              <div class="name">${escapeHtml(item.itemName)}</div>
+              <div class="meta">价格: ${escapeHtml(item.itemPrice)}</div>
+              <div class="meta">店铺: ${escapeHtml(item.shopName)}</div>
+            </div>
+          `;
+          fragment.appendChild(card);
+        });
+        productsEl.appendChild(fragment);
+      }
+
+      function firstImageUrl(images) {
+        if (!images.length) return "";
+        const first = images[0];
+        return typeof first === "string" ? first : first.imageUrl || "";
+      }
+
+      function parseJson(text) {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { rawText: text };
+        }
+      }
+
+      function extractErrorMessage(payload) {
+        return (
+          payload?.errors?.errorMessage ||
+          payload?.error_description ||
+          payload?.error ||
+          payload?.rawText ||
+          ""
+        );
+      }
+
+      function saveValues() {
+        Object.entries(fields).forEach(([key, field]) => {
+          localStorage.setItem(`rakuten.${key}`, field.value.trim());
+        });
+      }
+
+      function loadSavedValues() {
+        Object.entries(fields).forEach(([key, field]) => {
+          const value = localStorage.getItem(`rakuten.${key}`);
+          if (value) field.value = value;
+        });
+        if (!fields.genreId.value) fields.genreId.value = "100371";
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function maskUrl(url) {
+        return url
+          .replace(/applicationId=([^&]+)/, (_, value) => `applicationId=${mask(value)}`)
+          .replace(/accessKey=([^&]+)/, (_, value) => `accessKey=${mask(value)}`)
+          .replace(/affiliateId=([^&]+)/, (_, value) => `affiliateId=${mask(value)}`);
+      }
+
+      function mask(value) {
+        const decoded = decodeURIComponent(value);
+        if (decoded.length <= 8) return "********";
+        return `${decoded.slice(0, 4)}...${decoded.slice(-4)}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replaceAll("'", "&#39;");
+      }
+    </script>
+  </body>
+</html>
