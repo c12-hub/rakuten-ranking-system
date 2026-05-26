@@ -9,16 +9,16 @@ from openpyxl import Workbook
 
 
 COLUMNS = [
-    "商品名",
-    "商品价格",
-    "店铺名",
-    "评论数",
-    "评分",
-    "商品URL",
-    "主图URL",
-    "排名",
-    "类目ID",
-    "抓取时间",
+    "\u5546\u54c1\u540d",
+    "\u5546\u54c1\u4ef7\u683c",
+    "\u5e97\u94fa\u540d",
+    "\u8bc4\u8bba\u6570",
+    "\u8bc4\u5206",
+    "\u5546\u54c1URL",
+    "\u4e3b\u56feURL",
+    "\u6392\u540d",
+    "\u7c7b\u76eeID",
+    "\u6293\u53d6\u65f6\u95f4",
 ]
 
 
@@ -42,7 +42,7 @@ def dedupe_items(items: list[dict]) -> list[dict]:
     seen_urls: set[str] = set()
 
     for item in items:
-        item_url = item.get("商品URL", "")
+        item_url = item.get("\u5546\u54c1URL", "")
         if item_url and item_url in seen_urls:
             continue
         if item_url:

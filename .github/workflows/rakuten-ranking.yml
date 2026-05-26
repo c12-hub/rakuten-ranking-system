@@ -1,4 +1,4 @@
-name: Rakuten Ranking
+name: Rakuten Ranking Backup
 
 on:
   workflow_dispatch:
